@@ -1,269 +1,46 @@
-﻿
+﻿using Microsoft.VisualBasic;
+using System.ComponentModel.Design;
+using System.Data.SqlClient;
 using System.Linq;
+using System.Numerics;
+using System.Reflection.Metadata;
+using System.Xml.Linq;
 
-Library library = new Library();
+string stringaDiConnessione = "Data Source=localhost;Initial Catalog=db-biblioteca;Integrated Security=True";
+SqlConnection connessioneSql = new SqlConnection(stringaDiConnessione);
 
-Menu:
+Init();
 
-Console.WriteLine("Salve! Vuole effettuare una ricerca(0) , registrarsi?(1) o effettuare il login(2)");
-int choice = Convert.ToInt32(Console.ReadLine());
-
-if(choice == 0)
+void Init()
 {
-    Console.WriteLine("Vuole cercare un dvd(0), un libro?(1) oppure i prestiti di un utente?(2)");
-    int productChoice = Convert.ToInt32(Console.ReadLine());
+    Console.WriteLine("Salve! Vuole effettuare una ricerca(0), registrarsi(1) o effettuare il login?(2)");
 
-    Search(productChoice);
-
-    Console.WriteLine("Tornare al menù? Si(1) No(0)");
-    if (Convert.ToInt32(Console.ReadLine()) == 1)
+    switch (Convert.ToInt32(Console.ReadLine()))
     {
-        goto Menu;
-    }
-}
-else if(choice == 1)
-{
-   User user = Registration();
-   library.UserPush(user);
+        case 0:
+            Console.WriteLine($"Vuole cercare Dvd(0) o Libri(1)?");
+            SearchProduct(Convert.ToInt32(Console.ReadLine()), 0);
+            Init();
+            break;
+        case 1:
+            Registration();
+            break;
+        default:
+            Console.WriteLine("Inserire email");
+            string email = Console.ReadLine();
 
-    Console.WriteLine($"Salve {user.Name} {user.Surname}! Vuole prenotare? Dvd(0) Libro(1) || Lista prenotazioni(2) || Logout(3)");
-    int productChoice = Convert.ToInt32(Console.ReadLine());
+            Console.WriteLine("Inserire password");
+            string password = Console.ReadLine();
 
-    if (productChoice != 3)
-    {
-        UserList(productChoice, user);
-    }
-    else
-    {
-        goto Menu;
-    }
-
-   Console.WriteLine("Tornare al menù? Si(1) No(0)");
-   if (Convert.ToInt32(Console.ReadLine()) == 1)
-   {
-       goto Menu;
-   }
-}
-else
-{
-    User user = Login();
-
-    Console.WriteLine($"Salve {user.Name} {user.Surname}! Vuole prenotare? Dvd(0) Libro(1) || Lista prenotazioni(2) || Logout(3)");
-    int productChoice = Convert.ToInt32(Console.ReadLine());
-
-    if(productChoice != 3)
-    {
-        UserList(productChoice, user);
-    }
-    else
-    {
-        goto Menu;
-    }
-
-    Console.WriteLine("Tornare al menù? Si(1) No(0)");
-    if (Convert.ToInt32(Console.ReadLine()) == 1)
-    {
-        goto Menu;
+            UserMenu(SearchUser(email, password, false));
+            break;
     }
 }
 
-Object Search(int productChoice)
-{
-    //RICERCA DVD
-    if (productChoice == 0)
-    {
-        Console.WriteLine("Effettuare la ricerca sul titolo(0), sul codice(1) o visualizzare tutti i Dvd?(2)");
-        int searchParameter = Convert.ToInt32(Console.ReadLine());
-
-        bool dvdFounded = false;
-        Dvd chosenDvd = null;
-
-        if (searchParameter == 0)
-        {
-            Console.WriteLine("Inserire il titolo del dvd");
-            string searchedDvd = Console.ReadLine();
-
-            foreach (Dvd dvd in library.GetDvds())
-            {
-                if (dvd.Title.ToLower().Contains(searchedDvd.ToLower()))
-                {
-                    dvdFounded = true;
-                    chosenDvd = dvd;
-                }
-            }
-        }
-        else if (searchParameter == 1)
-        {
-            Console.WriteLine("Inserire il codice del dvd");
-            int searchedDvd = Convert.ToInt32(Console.ReadLine());
-
-            foreach (Dvd dvd in library.GetDvds())
-            {
-                if (dvd.Code == searchedDvd)
-                {
-                    dvdFounded = true;
-                    chosenDvd = dvd;
-                }
-            }
-        }
-        else
-        {
-            Console.WriteLine("Lista di tutti i Dvd: ");
-            Console.WriteLine("-----------------------");
-
-            foreach (Dvd dvd in library.GetDvds())
-            {
-                Console.WriteLine($"Titolo: {dvd.Title}");
-                Console.WriteLine($"Autore: {dvd.Author.Name} {dvd.Author.Surname}");
-                Console.WriteLine($"Disponibile: {(dvd.IsAvailable ? "Si" : "No")} ");
-                Console.WriteLine("-----------------------");
-            }
-            return null;
-        }
-
-        
-
-        if (dvdFounded)
-        {
-            Console.WriteLine("Dvd trovato, ecco i suoi dettagli: ");
-
-            Console.WriteLine($"Codice: {chosenDvd.Code}");
-            Console.WriteLine($"Titolo: {chosenDvd.Title}");
-            Console.WriteLine($"Anno di produzione: {chosenDvd.Year}");
-            Console.WriteLine($"Genere: {chosenDvd.Sector}");
-            Console.WriteLine($"Disponibile: {(chosenDvd.IsAvailable ? "Si" : "No")} ");
-            Console.WriteLine($"Scaffale: {chosenDvd.Shelf}");
-            Console.WriteLine($"Autore: {chosenDvd.Author.Name} {chosenDvd.Author.Surname}");
-            Console.WriteLine($"Durata del dvd: {chosenDvd.Time}");
-
-            return chosenDvd;
-        }
-        else
-        {
-            Console.WriteLine("Dvd non trovato");
-            return null;
-        }
-    }
-    //RICERCA LIBRI
-    else if(productChoice == 1)
-    {
-
-        Console.WriteLine("Effettuare la ricerca sul titolo(0), sul codice(1) o visualizzare tutti i Libri?(2)");
-        int searchParameter = Convert.ToInt32(Console.ReadLine());
-
-        bool bookFounded = false;
-        Book chosenBook = null;
-
-        if (searchParameter == 0)
-        {
-            Console.WriteLine("Inserire il titolo del libro");
-            string searchedBook = Console.ReadLine();
-
-            foreach (Book book in library.GetBooks())
-            {
-                if (book.Title.ToLower().Contains(searchedBook.ToLower()))
-                {
-                    bookFounded = true;
-                    chosenBook = book;
-                }
-            }
-        }
-        else if(searchParameter == 1)
-        {
-            Console.WriteLine("Inserire il codice del libro");
-            int searchedBook = Convert.ToInt32(Console.ReadLine());
-
-            foreach (Book book in library.GetBooks())
-            {
-                if (book.Code == searchedBook)
-                {
-                    bookFounded = true;
-                    chosenBook = book;
-                }
-            }
-        }
-        else
-        {
-            Console.WriteLine("Lista di tutti i Libri: ");
-            Console.WriteLine("-----------------------");
-
-            foreach (Book book in library.GetBooks())
-            {
-                Console.WriteLine($"Titolo: {book.Title}");
-                Console.WriteLine($"Autore: {book.Author.Name} {book.Author.Surname}");
-                Console.WriteLine($"Disponibile: {(book.IsAvailable? "Si" : "No")} ");
-                Console.WriteLine("-----------------------");
-            }
-            return null;
-        }
-
-        if (bookFounded)
-        {
-            Console.WriteLine("Libro trovato, ecco i suoi dettagli: ");
-
-            Console.WriteLine($"Codice: {chosenBook.Code}");
-            Console.WriteLine($"Titolo: {chosenBook.Title}");
-            Console.WriteLine($"Anno di produzione: {chosenBook.Year}");
-            Console.WriteLine($"Genere: {chosenBook.Sector}");
-            Console.WriteLine($"Disponibile: {(chosenBook.IsAvailable ? "Si" : "No")}");
-            Console.WriteLine($"Scaffale: {chosenBook.Shelf}");
-            Console.WriteLine($"Autore: {chosenBook.Author.Name} {chosenBook.Author.Surname}");
-            Console.WriteLine($"Numero di pagine: {chosenBook.NumberOfPages}");
-
-            return chosenBook;
-        }
-        else
-        {
-            Console.WriteLine("Libro non trovato");
-            return null;
-        }
-    }
-    //RICERCA PRENOTAZIONI
-    else
-    {
-        Console.WriteLine("Inserire cognome utente");
-        string searchedUserSurname = Console.ReadLine();
-
-        Console.WriteLine("Inserire nome utente");
-        string searchedUserName = Console.ReadLine();
-
-        List<Loan> userLoans = new List<Loan>();
-        bool loanExist = false;
-
-        foreach (Loan loan in library.GetLoans())
-        {
-            if (loan.User.Name.ToLower().Contains(searchedUserName.ToLower()) &&
-                loan.User.Surname.ToLower().Contains(searchedUserSurname.ToLower()) )
-
-            {
-                if (loan.Dvd != null)
-                {
-                    Console.WriteLine($"Dvd: {loan.Dvd.Title}");
-                    loanExist = true;
-                }
-                else
-                {
-                    Console.WriteLine($"Libro: {loan.Book.Title}");
-                    loanExist = true;
-                }
-                Console.WriteLine($"Dal: {loan.LoanStart}");
-                Console.WriteLine($"al: {loan.LoanEnd}");
-                Console.WriteLine("------------------------------");
-            }
-        }
-        if(!loanExist)
-        {
-            Console.WriteLine("L'utente non ha nessun prestito.");
-        }
-        Loan newLoan2 = new Loan();
-        return newLoan2;
-    }
-}
-
-User Registration()
+void Registration()
 {
     int userDataAccepted = 0;
-    User registedUser;
+    long currentUserId = 0;
     do
     {
         Console.WriteLine("Inserire cognome");
@@ -279,180 +56,419 @@ User Registration()
         string password = Console.ReadLine();
 
         Console.WriteLine("Inserire numero di telefono");
-        string phone = Console.ReadLine();
+        long phone = Convert.ToInt64(Console.ReadLine());
 
-        registedUser = new User(surname, name, email, password, phone);
-
+        Console.WriteLine();
         Console.WriteLine("Ecco il riepilogo dei dati da lei inseriti: ");
 
-        Console.WriteLine($"Cognome: {registedUser.Surname}");
-        Console.WriteLine($"Nome: {registedUser.Name}");
-        Console.WriteLine($"Email: {registedUser.Email}");
-        Console.WriteLine($"Password: {registedUser.Password}");
-        Console.WriteLine($"Phone: {registedUser.Phone}");
+        Console.WriteLine($"Cognome: {surname}");
+        Console.WriteLine($"Nome: {name}");
+        Console.WriteLine($"Email: {email}");
+        Console.WriteLine($"Password: {password}");
+        Console.WriteLine($"Phone: {phone}");
 
+        Console.WriteLine();
         Console.WriteLine("Le vanno bene? Si(1) No(0)");
         userDataAccepted = Convert.ToInt32(Console.ReadLine());
 
+        if (userDataAccepted == 1)
+        {
+            currentUserId = UserToDb(surname, name, email, password, phone);
+        }
+
     } while (userDataAccepted == 0);
 
-    return registedUser;
+    Console.WriteLine();
+    UserMenu(currentUserId);
 }
 
-User Login()
+void UserMenu(long userId)
 {
-    Console.WriteLine("Inserire la password");
-    string searchedPassword = Console.ReadLine();
+    long currentUserId = userId;
 
-    bool userFounded = false;
-    User chosenUser = null;
-
-    foreach (User user in library.GetUsers())
+    Console.WriteLine();
+    Console.WriteLine("Vuole prenotare? Dvd(0) Libro(1) || Lista prenotazioni(2) || Logout(3)");
+    int productChoice = Convert.ToInt32(Console.ReadLine());
+    Console.WriteLine();
+    try
     {
-        if (user.Password.ToLower().Contains(searchedPassword.ToLower()))
+        switch (productChoice)
         {
-            userFounded = true;
-            chosenUser = user;
+            case 0:
+
+                if (SearchProduct(productChoice, currentUserId) == 1)
+                {
+                    UserMenu(currentUserId);
+                }
+                else
+                {
+                    Init();
+                }
+                break;
+
+            case 1:
+                if (SearchProduct(productChoice, currentUserId) == 1)
+                {
+                    UserMenu(currentUserId);
+                }
+                else
+                {
+                    Init();
+                }
+                break;
+
+            case 2:
+                GetUserLoans(currentUserId);
+                Console.WriteLine("Vuole tornare al menù utente? Si(1) No(0)");
+
+                if(Convert.ToInt32(Console.ReadLine()) == 1)
+                {
+                    UserMenu(currentUserId);
+                }
+                else
+                {
+                    Init();
+                }
+                break;
+
+            default:
+                Init();
+                break;
         }
     }
-    if (userFounded)
+    catch (Exception ex)
     {
-        Console.WriteLine("Utente trovato, ecco i suoi dettagli: ");
+        Console.WriteLine(ex.Message);
+    }
+    
+}
 
-        Console.WriteLine($"Cognome: {chosenUser.Surname}");
-        Console.WriteLine($"Nome: {chosenUser.Name}");
-        Console.WriteLine($"Email: {chosenUser.Email}");
-        Console.WriteLine($"Password: {chosenUser.Password}");
-        Console.WriteLine($"Phone: {chosenUser.Phone}");
+void GetUserLoans(long currentUserId)
+{
+    try
+    {
+        connessioneSql.Open();
 
-        return chosenUser;
+        string query = "SELECT documents.title, loan_start, loan_end " +
+                        "FROM document_user " +
+                        "INNER JOIN documents ON documents.id = document_user.document_id " +
+                        "WHERE user_id = @dato1";
+
+        SqlCommand cmd = new SqlCommand(query, connessioneSql);
+        cmd.Parameters.Add(new SqlParameter("@dato1", currentUserId));
+
+        SqlDataReader reader = cmd.ExecuteReader();
+        {
+            while (reader.Read())
+            {
+                Console.WriteLine($"Titolo: {reader.GetString(0)}");
+                Console.WriteLine($"Prenotato il: {reader.GetDateTime(1)}");
+                Console.WriteLine($"Fino al: {reader.GetDateTime(2)}");
+            }
+        }
+
+        Console.WriteLine("Fine lista prenotazioni!");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+    finally
+    {
+        connessioneSql.Close();
+    }
+}
+
+void ChangeDocumentAvailability(long documentId)
+{
+    try
+    {
+        connessioneSql.Open();
+
+        string query = "UPDATE documents SET available = 0 WHERE id = @dato1";
+
+        SqlCommand cmd = new SqlCommand(query, connessioneSql);
+        cmd.Parameters.Add(new SqlParameter("@dato1", documentId));
+
+        int affectedRows = cmd.ExecuteNonQuery();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+    finally
+    {
+        connessioneSql.Close();
+    }
+}
+
+void NewLoan(long documentId, long currentUserId)
+{
+    try
+    {
+        Console.WriteLine("Inserire data della restituzione (dd/mm/yyyy)");
+        string loan_end = Console.ReadLine();
+
+        connessioneSql.Open();
+        string query = "INSERT INTO document_user (user_id, document_id, loan_start, loan_end) VALUES (@dato1, @dato2, @dato3, @dato4)";
+
+        SqlCommand cmd = new SqlCommand(query, connessioneSql);
+        cmd.Parameters.Add(new SqlParameter("@dato1", currentUserId));
+        cmd.Parameters.Add(new SqlParameter("@dato2", documentId));
+        cmd.Parameters.Add(new SqlParameter("@dato3", DateTime.Now.ToString("d")));
+        cmd.Parameters.Add(new SqlParameter("@dato4", loan_end));
+        int affectedRows = cmd.ExecuteNonQuery();
+
+        Console.WriteLine("Prenotazione effettuata!");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+    finally
+    {
+        connessioneSql.Close();
+    }
+
+    ChangeDocumentAvailability(documentId);
+}
+
+void ProductInfo(long documentId, int productType)
+{
+    Console.WriteLine();
+    try
+    {
+        string query = "";
+
+        connessioneSql.Open();
+
+        switch (productType)
+        {
+
+            case 0:
+                query = "SELECT title, year, sector, author, time, available, code " +
+                        "FROM documents " +
+                        "WHERE id = @dato1";
+                break;
+
+            default:
+                query = "SELECT title, year, sector, author, number_of_pages, available, code " +
+                        "FROM documents " +
+                        "WHERE id = @dato1";
+                break;
+        }
+        
+
+        SqlCommand cmd = new SqlCommand(query, connessioneSql);
+        cmd.Parameters.Add(new SqlParameter("@dato1", documentId));
+
+        SqlDataReader reader = cmd.ExecuteReader();
+        {
+            while (reader.Read())
+            {
+                Console.WriteLine($"Titolo: {reader.GetString(0)}");
+                Console.WriteLine($"Anno di uscita: {reader.GetInt32(1)}");
+                Console.WriteLine($"Genere: {reader.GetString(2)}");
+                Console.WriteLine($"Autore: {reader.GetString(3)}");
+
+                switch (productType)
+                {
+                    case 0:
+                        Console.WriteLine($"Durata dvd: {reader.GetInt32(4)}");
+                        break;
+
+                    default:
+                        Console.WriteLine($"Numero di pagine: {reader.GetInt32(4)}");
+                        break;
+                }
+                
+                Console.WriteLine($"Disponibile: {(reader.GetByte(5) == 1 ? "Si" : "No")}");
+                Console.WriteLine($"code: {reader.GetString(6)}");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+    finally
+    {
+        connessioneSql.Close();
+    }
+}
+
+int SearchProduct(int productType, long currentUserId)
+{
+
+    Console.WriteLine("Inserire titolo");
+    string title = Console.ReadLine();
+    Console.WriteLine();
+
+    string query = "";
+    long documentId = 0;
+    int documentAvailabe = 0;
+
+    switch (productType)
+    {
+        case 0:
+            query = "SELECT id, available FROM documents WHERE title = @dato1 AND type = 'dvd'";
+            break;
+        default:
+            query = "SELECT id, available FROM documents WHERE title = @dato1 AND type = 'book'";
+            break;
+    }
+
+    try
+    {
+        connessioneSql.Open();
+
+        SqlCommand cmd = new SqlCommand(query, connessioneSql);
+        cmd.Parameters.Add(new SqlParameter("@dato1", title));
+
+        SqlDataReader reader = cmd.ExecuteReader();
+        {
+            while (reader.Read())
+            {
+                documentId = reader.GetInt64(0);
+                documentAvailabe = reader.GetByte(1);
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+    finally
+    {
+        connessioneSql.Close();
+    }
+
+    switch (productType)
+    {
+        case 0:
+            Console.WriteLine("Dvd trovato con successo!");
+            ProductInfo(documentId, productType);
+            break;
+
+        default:
+            Console.WriteLine("Libro trovato con successo!");
+            ProductInfo(documentId, productType);
+            break;
+    }
+
+    if (currentUserId != 0)
+    {
+        switch (documentAvailabe)
+        {
+            case 0:
+                Console.WriteLine();
+                Console.WriteLine("Ma al momento non è disponibile. Tornare al menù utente? Si(1) No(0)");
+                return Convert.ToInt32(Console.ReadLine());
+
+            default:
+                Console.WriteLine();
+                Console.WriteLine("Proseguire con la prenotazione? Si(1) No(0)");
+
+                if (Convert.ToInt32(Console.ReadLine()) == 1)
+                {
+                    NewLoan(documentId, currentUserId);
+                    Console.WriteLine("Tornare al menù utente? Si(1) No(0)");
+                    return Convert.ToInt32(Console.ReadLine());
+                }
+                else
+                {
+                    return 1;
+                }
+        }
     }
     else
     {
-        Console.WriteLine("Utente non trovato");
-        return null;
+        Console.WriteLine("Ritorno al menù principale...");
+        Console.WriteLine();
+        return 0;
     }
 }
 
-void UserList(int productChoice, User user)
+long SearchUser(string email, string password, bool isUserLogged)
 {
-    if (productChoice == 0)
+    long currentUserId = 0;
+
+    try
     {
-        Dvd chosenDvd = (Dvd)Search(productChoice);
+        connessioneSql.Open();
 
-        if(chosenDvd != null)
+        string query = "SELECT id FROM users WHERE email = @dato1 AND password = @dato2";
+
+        SqlCommand cmd = new SqlCommand(query, connessioneSql);
+        cmd.Parameters.Add(new SqlParameter("@dato1", email));
+        cmd.Parameters.Add(new SqlParameter("@dato2", password));
+
+        SqlDataReader reader = cmd.ExecuteReader();
         {
-            if (chosenDvd.IsAvailable == true)
+            while (reader.Read())
             {
-                Console.WriteLine("Il dvd è prenotabile, procedere? Si(1) No(0)");
-                int isUserBooking = Convert.ToInt32(Console.ReadLine());
-
-                if (isUserBooking == 1)
-                {
-                    chosenDvd.IsAvailable = false;
-                    library.LoanPush(new Loan(user, DateTime.Now.ToString(), DateTime.Now.AddDays(7).ToString()));
-                    library.GetLoans()[library.GetLoans().Count - 1].Dvd = chosenDvd;
-
-                    Console.WriteLine($"la prenotazione del Dvd {chosenDvd.Title} è avvenuta con successo! Visualizzare la lista dei propri Dvd? Si(1) No(0)");
-                    int toList = Convert.ToInt32(Console.ReadLine());
-
-                    if (toList == 1)
-                    {
-                        GetLoans(user, "dvd");
-                    }
-                }
-            }
-            else
-            {
-                Console.WriteLine("Il Dvd non è prenotabile.");
+                currentUserId = reader.GetInt64(0);
             }
         }
+
+        Console.WriteLine();
+        if (!isUserLogged)
+        {
+            Console.WriteLine("utente trovato con successo!");
+        }
+        
     }
-    else if(productChoice == 1)
+    catch (Exception ex)
     {
-        Book chosenBook = (Book)Search(productChoice);
-
-        if(chosenBook != null)
-        {
-            if (chosenBook.IsAvailable == true)
-            {
-                Console.WriteLine("Il libro è prenotabile, procedere? Si(1) No(0)");
-                int isUserBooking = Convert.ToInt32(Console.ReadLine());
-
-                if (isUserBooking == 1)
-                {
-                    chosenBook.IsAvailable = false;
-                    library.LoanPush(new Loan(user, DateTime.Now.ToString(), DateTime.Now.AddDays(7).ToString()));
-                    library.GetLoans()[library.GetLoans().Count - 1].Book = chosenBook;
-
-                    Console.WriteLine($"la prenotazione del libro {chosenBook.Title} è avvenuta con successo! Visualizzare la lista dei propri libri? Si(1) No(0)");
-                    int toList = Convert.ToInt32(Console.ReadLine());
-
-                    if (toList == 1)
-                    {
-                        GetLoans(user, "libri");
-                    }
-                }
-            }
-            else
-            {
-                Console.WriteLine("Il libro non è prenotabile.");
-            }
-        }
-
+        Console.WriteLine(ex.Message);
     }
-    else
+    finally
     {
-        Console.WriteLine("Di cosa vuole mostrare le prenotazioni? Dvd(0) Libri(1)");
-        int searchType = Convert.ToInt32(Console.ReadLine());
-
-        if(searchType == 0)
-        {
-            GetLoans(user, "dvd");
-        }
-        else
-        {
-            GetLoans(user, "libri");
-        }
+        connessioneSql.Close();
     }
+
+    return currentUserId;
 }
 
-void GetLoans(User user, string testo)
+long UserToDb(string surname, string name, string email, string password, long phone)
 {
-    Console.WriteLine($"Ecco la lista dei {testo} da lei prenotati: ");
-    bool LoanExist = false;
-    foreach (Loan loan in library.GetLoans())
-    {
-        if (loan.User.Name == user.Name)
-        {
-            if(testo == "dvd")
-            {
-                if (loan.Dvd != null)
-                {
-                    Console.WriteLine(loan.Dvd.Title);
-                    Console.WriteLine($"Dal: {loan.LoanStart}");
-                    Console.WriteLine($"al: {loan.LoanEnd}");
-                    Console.WriteLine("------------------------------");
-                    LoanExist = true;
-                }
-            }
-            else
-            {
-                if (loan.Book != null)
-                {
-                    Console.WriteLine(loan.Book.Title);
-                    Console.WriteLine($"Dal: {loan.LoanStart}");
-                    Console.WriteLine($"al: {loan.LoanEnd}");
-                    Console.WriteLine("------------------------------");
-                    LoanExist = true;
-                }
-            }
-            
-        }
-    }
-    if (!LoanExist)
-    {
-        Console.WriteLine($"Non vi sono prenotazioni di {testo} a suo nome.");
-    }
-}
+    long currentUserId = 0;
 
+    try
+    {
+        connessioneSql.Open();
+
+        string query = "INSERT INTO users (name, surname, email, password, phone) VALUES (@dato1, @dato2, @dato3, @dato4, @dato5)";
+
+        SqlCommand cmd = new SqlCommand(query, connessioneSql);
+        cmd.Parameters.Add(new SqlParameter("@dato1", name));
+        cmd.Parameters.Add(new SqlParameter("@dato2", surname));
+        cmd.Parameters.Add(new SqlParameter("@dato3", email));
+        cmd.Parameters.Add(new SqlParameter("@dato4", password));
+        cmd.Parameters.Add(new SqlParameter("@dato5", phone));
+
+        int affectedRows = cmd.ExecuteNonQuery();
+
+        Console.WriteLine("utente inserito nel database");
+    }
+    catch(Exception ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+    finally
+    {
+        connessioneSql.Close();
+    }
+    
+
+    try
+    {
+        currentUserId = SearchUser(email, password, true);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+
+    return currentUserId;
+}
